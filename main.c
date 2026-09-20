@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define PORT 9090
 #define BUFFER_SIZE 1024
@@ -42,7 +43,21 @@ int main ()
         struct sockaddr_in clientAddr;
         socklen_t clientLen = sizeof clientAddr;
         int *clientSocket = malloc(sizeof(int));
+
+        if ((*clientSocket = accept(serverSock, (struct sockaddr *)&clientAddr, &clientLen)) < 0)
+        {
+            perror("could not accept client");
+            continue;
+        }
+        printf("client connectded\n");
+
+        close(*clientSocket);
+        printf("client disconnected\n");
+
+        free(clientSocket);
     }
+    close(serverSock);
+
 
     return 0;
 }

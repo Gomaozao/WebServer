@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,44 @@
 
 #define PORT 9090
 #define BUFFER_SIZE 1024
+
+char *parseRoute(const char *route)
+{
+    if (strcmp(route, "home") == 0)
+    {
+        return "static/index.html";
+    } else if (strcmp(route, "about") == 0 )
+    {
+        return "static/about.html";
+    } else if (strcmp(route, "favicon.ico") == 0)
+    {
+        return "static/favicon.ico";
+    }
+
+    return "static/notFound.html";
+}
+void sendHTML(int *sock, const char *file)
+{
+    FILE *html = fopen(file, "r");
+    if (!html)
+    {
+        perror("could not open HTML file");
+        return;
+    }
+
+    char buffer[BUFFER_SIZE] = {0};
+    size_t read = 0;
+
+    char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+    send(*sock,header,strlen(header),0);
+
+    while((read = fread(buffer, sizeof(buffer[0]), BUFFER_SIZE, html)) > 0)
+    {
+        send(*sock, buffer, read, 0);
+    }
+
+    fclose(html);
+}
 
 int main ()
 {
@@ -50,6 +89,12 @@ int main ()
             continue;
         }
         printf("client connectded\n");
+        char recBuf[BUFFER_SIZE] = {0};
+        recv(*clientSocket, recBuf, BUFFER_SIZE, 0);
+        // printf("%s\n", recBuf);
+        char *token = recBuf + 5;
+        char *route = strtok(token, " ");
+        sendHTML(clientSocket, parseRoute(route));
 
         close(*clientSocket);
         printf("client disconnected\n");
@@ -57,8 +102,6 @@ int main ()
         free(clientSocket);
     }
     close(serverSock);
-
-
 
     return 0;
 }
